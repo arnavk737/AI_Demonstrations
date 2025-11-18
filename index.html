@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI for Good - Interactive Demos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            color: white;
+            position: relative;
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: fadeInDown 1s ease;
+        }
+
+        .hero p {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            animation: fadeInUp 1s ease 0.3s backwards;
+            max-width: 700px;
+        }
+
+        .scroll-arrow {
+            font-size: 3rem;
+            animation: bounce 2s infinite;
+            cursor: pointer;
+            margin-top: 2rem;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-20px);
+            }
+            60% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .demos-section {
+            min-height: 100vh;
+            background: white;
+            padding: 4rem 2rem;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .section-header h2 {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .section-header p {
+            font-size: 1.2rem;
+            color: #666;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .demos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .demo-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            border: 2px solid transparent;
+        }
+
+        .demo-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+            border-color: #667eea;
+        }
+
+        .demo-icon {
+            font-size: 4rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .demo-card h3 {
+            font-size: 1.8rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .demo-card p {
+            font-size: 1.1rem;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .demo-tag {
+            display: inline-block;
+            background: #f0f0f0;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #667eea;
+            margin-top: 1rem;
+            font-weight: bold;
+        }
+
+        .footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1.2rem;
+            }
+
+            .section-header h2 {
+                font-size: 2rem;
+            }
+
+            .demos-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero/Intro Section -->
+    <section class="hero">
+        <h1>AI for Good</h1>
+        <p>Welcome to our interactive AI demonstrations! Explore how artificial intelligence can recognize emotions, track movements, understand drawings, and respond to your voice. Click on any demo below to experience AI in action!</p>
+        <div class="scroll-arrow" onclick="document.querySelector('.demos-section').scrollIntoView({behavior: 'smooth'})">
+            ⬇️
+        </div>
+    </section>
+
+    <!-- Demos Section -->
+    <section class="demos-section" id="demos">
+        <div class="section-header">
+            <h2>Explore Our Demos</h2>
+            <p>Each demo uses real AI and machine learning to create an interactive experience. Click any card to try it yourself!</p>
+        </div>
+
+        <div class="demos-grid">
+            <!-- Emotion Detection Demo -->
+            <a href="emotion_detection.html" class="demo-card">
+                <span class="demo-icon">😊</span>
+                <h3>Emotion Detection</h3>
+                <p>See how AI reads your emotions in real-time! The AI detects facial expressions and identifies emotions like happiness, sadness, surprise, and more.</p>
+                <span class="demo-tag">Computer Vision</span>
+            </a>
+
+            <!-- Pose Detection Demo -->
+            <a href="pose_detection.html" class="demo-card">
+                <span class="demo-icon">🤸</span>
+                <h3>Pose Detection</h3>
+                <p>Match the poses as fast as you can! The AI tracks 17 points on your body in real-time to recognize different poses and movements.</p>
+                <span class="demo-tag">Motion Tracking</span>
+            </a>
+
+            <!-- Drawing Guesser Demo -->
+            <a href="drawing_guesser.html" class="demo-card">
+                <span class="demo-icon">🎨</span>
+                <h3>Drawing Guesser</h3>
+                <p>Draw an object and see if AI can guess what it is! The AI has learned from millions of images to recognize your drawings.</p>
+                <span class="demo-tag">Image Recognition</span>
+            </a>
+
+            <!-- Gesture Pong Demo -->
+            <a href="gesture_pong.html" class="demo-card">
+                <span class="demo-icon">👋</span>
+                <h3>Gesture Pong</h3>
+                <p>Control the paddles with your hands! Use hand gestures to play Pong as the AI tracks 21 points on each hand in real-time.</p>
+                <span class="demo-tag">Hand Tracking</span>
+            </a>
+
+            <!-- Object Detection Demo (NEW) -->
+            <a href="object_detection.html" class="demo-card">
+                <span class="demo-icon">🔍</span>
+                <h3>Object Detection</h3>
+                <p>Show objects to the camera and watch AI identify them! The AI can recognize 80 different types of objects including phones, pets, and everyday items.</p>
+                <span class="demo-tag">Object Recognition</span>
+            </a>
+
+            <!-- Voice Command Game (NEW) -->
+            <a href="voice_game.html" class="demo-card">
+                <span class="demo-icon">🎤</span>
+                <h3>Voice Command Game</h3>
+                <p>Control a character using your voice! Say commands like "jump" or "dance" and watch the AI recognize your speech and respond instantly.</p>
+                <span class="demo-tag">Speech Recognition</span>
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Created with ❤️ by AI for Good Club | Using real machine learning models</p>
+        <p>🌟 AI can change the world for the better! 🌟</p>
+    </footer>
+</body>
+</html>

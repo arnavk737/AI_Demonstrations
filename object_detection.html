@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Detection - AI for Good</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            color: white;
+            text-align: center;
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .camera-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #webcam {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .status {
+            text-align: center;
+            padding: 1rem;
+            margin-top: 1rem;
+            background: #f0f0f0;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .objects-found {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .objects-found h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+        }
+
+        .object-list {
+            list-style: none;
+        }
+
+        .object-item {
+            background: #f8f9fa;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+        }
+
+        .object-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .confidence {
+            color: #667eea;
+            font-size: 0.9rem;
+        }
+
+        .info-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .info-card h3 {
+            color: #667eea;
+            margin-bottom: 0.8rem;
+            font-size: 1.3rem;
+        }
+
+        .info-card p {
+            color: #666;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+
+        .home-button {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            background: white;
+            color: #667eea;
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .home-button:hover {
+            transform: translateY(-3px);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .home-button {
+                top: 1rem;
+                left: 1rem;
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="home-button">← Home</a>
+
+    <div class="container">
+        <h1>🔍 Object Detection</h1>
+        <p class="subtitle">Show objects to the camera and watch AI identify them in real-time!</p>
+
+        <div class="main-content">
+            <div class="camera-section">
+                <div class="video-container">
+                    <video id="webcam" autoplay playsinline></video>
+                    <canvas id="canvas"></canvas>
+                </div>
+                <div class="status" id="status">Loading AI Camera...</div>
+            </div>
+
+            <div class="objects-found">
+                <h2>📦 Objects Detected</h2>
+                <ul class="object-list" id="objectList">
+                    <li style="color: #999; padding: 1rem;">Objects will appear here...</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="info-card">
+                <h3>🎯 How to Use</h3>
+                <p>Show different objects to the camera like phones, cups, books, or even pets! The AI will identify them and draw boxes around them.</p>
+            </div>
+
+            <div class="info-card">
+                <h3>🧠 How It Works</h3>
+                <p>Using the COCO-SSD model trained on 80 different object categories, the AI can recognize and locate objects in real-time!</p>
+            </div>
+
+            <div class="info-card">
+                <h3>🌍 Real-World Uses</h3>
+                <p>Self-driving cars use this to see pedestrians and traffic. Stores use it for checkout-free shopping. It helps blind people "see" their surroundings!</p>
+            </div>
+
+            <div class="info-card">
+                <h3>✨ AI For Good</h3>
+                <p>This technology helps organize photos, assists wildlife conservation by counting animals, and makes cities safer with smart cameras!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let model;
+        let video;
+        let canvas;
+        let ctx;
+
+        async function setupCamera() {
+            video = document.getElementById('webcam');
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user' },
+                audio: false
+            });
+
+            video.srcObject = stream;
+
+            return new Promise((resolve) => {
+                video.onloadedmetadata = () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    resolve(video);
+                };
+            });
+        }
+
+        async function loadModel() {
+            document.getElementById('status').textContent = 'Loading AI Model...';
+            model = await cocoSsd.load();
+            document.getElementById('status').textContent = '✅ AI Ready! Show objects to camera';
+        }
+
+        function drawBox(prediction) {
+            const [x, y, width, height] = prediction.bbox;
+            
+            // Draw box
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(x, y, width, height);
+
+            // Draw label background
+            ctx.fillStyle = '#667eea';
+            const textWidth = ctx.measureText(prediction.class).width;
+            ctx.fillRect(x, y - 30, textWidth + 20, 30);
+
+            // Draw label text
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText(prediction.class, x + 10, y - 8);
+        }
+
+        function updateObjectList(predictions) {
+            const objectList = document.getElementById('objectList');
+            
+            if (predictions.length === 0) {
+                objectList.innerHTML = '<li style="color: #999; padding: 1rem;">No objects detected</li>';
+                return;
+            }
+
+            objectList.innerHTML = predictions.map(pred => `
+                <li class="object-item">
+                    <span class="object-name">${pred.class}</span>
+                    <span class="confidence">${Math.round(pred.score * 100)}% confident</span>
+                </li>
+            `).join('');
+        }
+
+        async function detectObjects() {
+            const predictions = await model.detect(video);
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw boxes
+            predictions.forEach(prediction => {
+                if (prediction.score > 0.5) {
+                    drawBox(prediction);
+                }
+            });
+
+            // Update list
+            updateObjectList(predictions.filter(p => p.score > 0.5));
+
+            requestAnimationFrame(detectObjects);
+        }
+
+        async function init() {
+            try {
+                await setupCamera();
+                await loadModel();
+                detectObjects();
+            } catch (error) {
+                document.getElementById('status').textContent = '❌ Error: ' + error.message;
+                console.error(error);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Drawing Guesser Game 🎨</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        #drawingCanvas {
+            border: 4px solid #8b5cf6;
+            cursor: crosshair;
+            touch-action: none;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-bounce-slow {
+            animation: bounce 2s infinite;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        .home-button {
+    position: fixed;
+    top: 2rem;
+    left: 2rem;
+    background: white;
+    color: #667eea;
+    padding: 0.8rem 1.5rem;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: bold;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+}
+
+.home-button:hover {
+    transform: translateY(-3px);
+}
+
+@media (max-width: 768px) {
+    .home-button {
+        top: 1rem;
+        left: 1rem;
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+    </style>
+</head>
+<body class="bg-gradient-to-br from-pink-400 via-purple-400 to-indigo-500">
+    <a href="index.html" class="home-button">← Home</a>
+    <div class="min-h-screen p-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="bg-white rounded-3xl shadow-2xl p-8">
+                <!-- Header -->
+                <div class="text-center mb-6">
+                    <h1 class="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600 mb-2">
+                        AI Drawing Guesser 🎨
+                    </h1>
+                    <p class="text-gray-600 text-lg">Draw the object and see if AI can guess what it is!</p>
+                </div>
+
+                <!-- Game Stats -->
+                <div class="grid md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-4 text-white text-center">
+                        <div class="text-3xl mb-1">🎯</div>
+                        <div class="text-3xl font-bold" id="score">0</div>
+                        <div class="text-sm opacity-90">Score</div>
+                    </div>
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-4 text-white text-center">
+                        <div class="text-3xl mb-1">🏆</div>
+                        <div class="text-3xl font-bold" id="round">1</div>
+                        <div class="text-sm opacity-90">Round</div>
+                    </div>
+                    <div class="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-4 text-white text-center">
+                        <div class="text-3xl mb-1">⏱️</div>
+                        <div class="text-3xl font-bold" id="timer">30</div>
+                        <div class="text-sm opacity-90">Seconds</div>
+                    </div>
+                    <div class="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-4 text-white text-center">
+                        <div class="text-3xl mb-1">✨</div>
+                        <div class="text-3xl font-bold" id="streak">0</div>
+                        <div class="text-sm opacity-90">Streak</div>
+                    </div>
+                </div>
+
+                <!-- Main Game Area -->
+                <div class="grid lg:grid-cols-2 gap-6 mb-6">
+                    <!-- Drawing Canvas -->
+                    <div class="space-y-4">
+                        <!-- Challenge Display -->
+                        <div id="challengeBox" class="bg-gradient-to-r from-yellow-400 to-orange-400 rounded-2xl p-6 text-center hidden">
+                            <p class="text-white text-xl mb-2">Draw this:</p>
+                            <h2 class="text-5xl font-bold text-white mb-2" id="challengeItem">🍎 Apple</h2>
+                            <p class="text-white text-sm">AI will try to guess your drawing!</p>
+                        </div>
+
+                        <div class="bg-gray-100 rounded-2xl p-4">
+                            <canvas id="drawingCanvas" width="500" height="500" class="mx-auto bg-white rounded-xl"></canvas>
+                        </div>
+
+                        <!-- Drawing Controls -->
+                        <div class="flex gap-3 justify-center">
+                            <button id="clearBtn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl font-bold transform hover:scale-105 transition-all">
+                                🗑️ Clear
+                            </button>
+                            <button id="checkBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-xl font-bold transform hover:scale-105 transition-all">
+                                🔍 Check Drawing
+                            </button>
+                            <div class="flex items-center gap-2 bg-white rounded-xl px-4">
+                                <label for="brushSize" class="text-sm font-semibold">Brush:</label>
+                                <input type="range" id="brushSize" min="2" max="20" value="8" class="w-24">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Guesses Panel -->
+                    <div class="space-y-4">
+                        <!-- AI Status -->
+                        <div id="loadingBox" class="bg-gradient-to-r from-blue-400 to-purple-400 rounded-2xl p-8 text-center">
+                            <div class="text-6xl mb-4 animate-bounce-slow">🤖</div>
+                            <p class="text-white text-xl font-bold" id="statusText">Loading AI...</p>
+                        </div>
+
+                        <!-- AI Guesses -->
+                        <div id="guessesBox" class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 hidden">
+                            <h3 class="text-2xl font-bold text-gray-800 mb-4">AI's Guesses 🤖</h3>
+                            <div id="guessesList" class="space-y-3">
+                                <!-- Guesses will appear here -->
+                            </div>
+                        </div>
+
+                        <!-- Result Message -->
+                        <div id="resultBox" class="rounded-2xl p-6 text-center hidden">
+                            <div class="text-6xl mb-3" id="resultEmoji">🎉</div>
+                            <h3 class="text-3xl font-bold mb-2" id="resultText">Amazing!</h3>
+                            <p class="text-lg mb-4" id="resultDetail">AI guessed your drawing!</p>
+                            <button id="nextBtn" class="bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-3 rounded-xl text-xl font-bold hover:from-green-600 hover:to-green-700 transform hover:scale-105 transition-all">
+                                Next Round! 🎮
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Start Screen -->
+                <div id="startScreen" class="text-center">
+                    <div class="bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl p-8 mb-6">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-4">How to Play 🎮</h2>
+                        <div class="grid md:grid-cols-3 gap-4 text-left">
+                            <div class="bg-white rounded-xl p-4">
+                                <p class="font-semibold mb-2">1️⃣ Get a Challenge</p>
+                                <p class="text-sm text-gray-700">You'll be asked to draw an object like a cat, tree, or car!</p>
+                            </div>
+                            <div class="bg-white rounded-xl p-4">
+                                <p class="font-semibold mb-2">2️⃣ Draw It!</p>
+                                <p class="text-sm text-gray-700">Use your mouse or finger to draw on the canvas. Be creative!</p>
+                            </div>
+                            <div class="bg-white rounded-xl p-4">
+                                <p class="font-semibold mb-2">3️⃣ AI Guesses</p>
+                                <p class="text-sm text-gray-700">The AI will try to recognize your drawing. Can you fool it?</p>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="startBtn" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-12 py-4 rounded-xl text-2xl font-bold hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all shadow-lg">
+                        Start Playing! 🚀
+                    </button>
+                </div>
+
+                <!-- Educational Section -->
+                <div class="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6">
+                    <h3 class="text-2xl font-bold text-blue-900 mb-4">How AI Recognizes Drawings</h3>
+                    <div class="grid md:grid-cols-3 gap-4 text-gray-700">
+                        <div class="bg-white rounded-xl p-4">
+                            <p class="font-semibold mb-2">Pattern Recognition</p>
+                            <p class="text-sm">AI has learned from millions of images to recognize shapes, lines, and patterns.</p>
+                        </div>
+                        <div class="bg-white rounded-xl p-4">
+                            <p class="font-semibold mb-2">Neural Networks</p>
+                            <p class="text-sm">The AI uses layers of "neurons" that work together, similar to how our brain processes images!</p>
+                        </div>
+                        <div class="bg-white rounded-xl p-4">
+                            <p class="font-semibold mb-2">Real-World Uses</p>
+                            <p class="text-sm">This technology helps self-driving cars see roads, doctors detect diseases, and more!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+        const brushSizeInput = document.getElementById('brushSize');
+        
+        let model = null;
+        let isDrawing = false;
+        let score = 0;
+        let round = 1;
+        let timer = 30;
+        let timerInterval = null;
+        let gameActive = false;
+        let streak = 0;
+        let currentChallenge = null;
+
+        const challenges = [
+            { name: 'Apple', emoji: '🍎', keywords: ['apple', 'fruit', 'red'] },
+            { name: 'Banana', emoji: '🍌', keywords: ['banana', 'fruit', 'yellow'] },
+            { name: 'Cat', emoji: '🐱', keywords: ['cat', 'kitten', 'feline', 'pet'] },
+            { name: 'Dog', emoji: '🐶', keywords: ['dog', 'puppy', 'pet'] },
+            { name: 'Car', emoji: '🚗', keywords: ['car', 'vehicle', 'automobile'] },
+            { name: 'Tree', emoji: '🌳', keywords: ['tree', 'plant', 'oak', 'pine'] },
+            { name: 'House', emoji: '🏠', keywords: ['house', 'home', 'building'] },
+            { name: 'Sun', emoji: '☀️', keywords: ['sun', 'sunshine', 'star'] },
+            { name: 'Flower', emoji: '🌸', keywords: ['flower', 'rose', 'daisy', 'plant'] },
+            { name: 'Ball', emoji: '⚽', keywords: ['ball', 'sphere', 'soccer', 'basketball'] },
+            { name: 'Pizza', emoji: '🍕', keywords: ['pizza', 'food'] },
+            { name: 'Ice Cream', emoji: '🍦', keywords: ['ice cream', 'cone', 'dessert'] },
+            { name: 'Butterfly', emoji: '🦋', keywords: ['butterfly', 'insect'] },
+            { name: 'Fish', emoji: '🐟', keywords: ['fish', 'goldfish'] },
+            { name: 'Bird', emoji: '🐦', keywords: ['bird', 'sparrow'] }
+        ];
+
+        // Initialize
+        async function init() {
+            document.getElementById('statusText').textContent = 'Loading AI model...';
+            try {
+                model = await mobilenet.load();
+                document.getElementById('statusText').textContent = 'AI Ready! Click Start to Play';
+                document.getElementById('loadingBox').classList.remove('from-blue-400', 'to-purple-400');
+                document.getElementById('loadingBox').classList.add('from-green-400', 'to-green-500');
+            } catch (err) {
+                console.error('Model load error:', err);
+                document.getElementById('statusText').textContent = 'Error loading AI. Please refresh!';
+            }
+        }
+
+        // Drawing functions
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // Touch support
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            isDrawing = true;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!isDrawing) return;
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            stopDrawing();
+        });
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            ctx.beginPath();
+            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = brushSizeInput.value;
+            ctx.strokeStyle = '#000000';
+            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            ctx.stroke();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Game functions
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('loadingBox').classList.add('hidden');
+            document.getElementById('challengeBox').classList.remove('hidden');
+            gameActive = true;
+            score = 0;
+            round = 1;
+            streak = 0;
+            updateStats();
+            nextRound();
+        }
+
+        function nextRound() {
+            clearCanvas();
+            document.getElementById('resultBox').classList.add('hidden');
+            document.getElementById('guessesBox').classList.add('hidden');
+            document.getElementById('challengeBox').classList.remove('hidden');
+            
+            // Select random challenge
+            currentChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+            document.getElementById('challengeItem').textContent = `${currentChallenge.emoji} ${currentChallenge.name}`;
+            
+            // Start timer
+            timer = 30;
+            document.getElementById('timer').textContent = timer;
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timer--;
+                document.getElementById('timer').textContent = timer;
+                if (timer <= 0) {
+                    clearInterval(timerInterval);
+                    checkDrawing();
+                }
+            }, 1000);
+        }
+
+        async function checkDrawing() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            document.getElementById('guessesBox').classList.remove('hidden');
+            document.getElementById('guessesList').innerHTML = '<p class="text-gray-500">AI is analyzing your drawing...</p>';
+            
+            try {
+                const predictions = await model.classify(canvas);
+                displayGuesses(predictions);
+                
+                // Check if any prediction matches the challenge
+                const correct = predictions.some(pred => 
+                    currentChallenge.keywords.some(keyword => 
+                        pred.className.toLowerCase().includes(keyword.toLowerCase())
+                    )
+                );
+                
+                showResult(correct, predictions[0]);
+            } catch (err) {
+                console.error('Classification error:', err);
+                document.getElementById('guessesList').innerHTML = '<p class="text-red-500">Error analyzing drawing. Try again!</p>';
+            }
+        }
+
+        function displayGuesses(predictions) {
+            const guessesList = document.getElementById('guessesList');
+            guessesList.innerHTML = '';
+            
+            predictions.slice(0, 5).forEach((pred, index) => {
+                const percentage = (pred.probability * 100).toFixed(1);
+                const isMatch = currentChallenge.keywords.some(keyword => 
+                    pred.className.toLowerCase().includes(keyword.toLowerCase())
+                );
+                
+                const guessHTML = `
+                    <div class="slide-in bg-white rounded-xl p-4 ${isMatch ? 'border-4 border-green-500' : 'border-2 border-gray-200'}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl font-bold text-gray-400">#${index + 1}</span>
+                                <span class="font-semibold text-gray-800">${pred.className}</span>
+                                ${isMatch ? '<span class="text-2xl">✅</span>' : ''}
+                            </div>
+                            <span class="font-bold text-purple-600">${percentage}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                            <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+                guessesList.innerHTML += guessHTML;
+            });
+        }
+
+        function showResult(correct, topGuess) {
+            document.getElementById('challengeBox').classList.add('hidden');
+            document.getElementById('resultBox').classList.remove('hidden');
+            
+            if (correct) {
+                score += 10 + streak * 2;
+                streak++;
+                document.getElementById('resultBox').className = 'bg-gradient-to-r from-green-400 to-green-500 rounded-2xl p-6 text-center text-white';
+                document.getElementById('resultEmoji').textContent = '🎉';
+                document.getElementById('resultText').textContent = 'Amazing!';
+                document.getElementById('resultDetail').textContent = `AI correctly guessed your ${currentChallenge.name}! +${10 + (streak - 1) * 2} points`;
+            } else {
+                streak = 0;
+                document.getElementById('resultBox').className = 'bg-gradient-to-r from-orange-400 to-red-500 rounded-2xl p-6 text-center text-white';
+                document.getElementById('resultEmoji').textContent = '😅';
+                document.getElementById('resultText').textContent = 'Nice Try!';
+                document.getElementById('resultDetail').textContent = `AI thought it was a ${topGuess.className}. Keep practicing!`;
+            }
+            
+            round++;
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('round').textContent = round;
+            document.getElementById('streak').textContent = streak;
+        }
+
+        // Event listeners
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('clearBtn').addEventListener('click', clearCanvas);
+        document.getElementById('checkBtn').addEventListener('click', checkDrawing);
+        document.getElementById('nextBtn').addEventListener('click', nextRound);
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

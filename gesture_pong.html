@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gesture Pong - AI for Good</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .home-button {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            background: white;
+            color: #667eea;
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .home-button:hover {
+            transform: translateY(-3px);
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            color: white;
+            text-align: center;
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .controls-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .controls-section h2 {
+            color: #667eea;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+
+        .player-info {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .player-info h3 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .player-info p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .instructions {
+            margin-top: 1.5rem;
+        }
+
+        .instruction-item {
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 1.1rem;
+        }
+
+        .game-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .game-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .camera-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .camera-section h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+            text-align: center;
+        }
+
+        .camera-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #webcam {
+            display: none;
+        }
+
+        #cameraCanvas {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .score-display {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .score-item {
+            text-align: center;
+        }
+
+        .score-item h3 {
+            color: #667eea;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .score-item p {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .status {
+            text-align: center;
+            padding: 1rem;
+            margin-top: 1rem;
+            background: #f0f0f0;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .info-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .info-card h3 {
+            color: #667eea;
+            margin-bottom: 0.8rem;
+            font-size: 1.3rem;
+        }
+
+        .info-card p {
+            color: #666;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .home-button {
+                top: 1rem;
+                left: 1rem;
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="home-button">← Home</a>
+
+    <div class="container">
+        <h1>Gesture Pong</h1>
+        <p class="subtitle">Control the paddles with your hands!</p>
+
+        <div class="main-content">
+            <div class="controls-section">
+                <h2>🎮 Controls</h2>
+                
+                <div class="player-info">
+                    <h3>Left Player: Left hand</h3>
+                </div>
+
+                <div class="player-info">
+                    <h3>Right Player: Right hand</h3>
+                </div>
+
+                <div class="instructions">
+                    <div class="instruction-item">☝️ Point index finger up/down</div>
+                    <div class="instruction-item">⚡ Speed increases over time!</div>
+                </div>
+            </div>
+
+            <div class="game-section">
+                <div class="game-container">
+                    <canvas id="gameCanvas" width="800" height="600"></canvas>
+                </div>
+
+                <div class="score-display">
+                    <div class="score-item">
+                        <h3>Left Score</h3>
+                        <p id="leftScore">0</p>
+                    </div>
+                    <div class="score-item">
+                        <h3>Right Score</h3>
+                        <p id="rightScore">0</p>
+                    </div>
+                </div>
+
+                <div class="status" id="status">Loading AI...</div>
+            </div>
+
+            <div class="camera-section">
+                <h2>📹 Camera View</h2>
+                <div class="camera-container">
+                    <canvas id="cameraCanvas"></canvas>
+                    <video id="webcam" autoplay playsinline></video>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="info-card">
+                <h3>1️⃣ Show Your Hands</h3>
+                <p>Hold your hands up to the camera. Left hand controls left paddle, right hand controls right paddle!</p>
+            </div>
+
+            <div class="info-card">
+                <h3>2️⃣ Point Your Finger</h3>
+                <p>Use your index finger (pointing finger) to move the paddle up and down!</p>
+            </div>
+
+            <div class="info-card">
+                <h3>3️⃣ Hit the Ball</h3>
+                <p>Block the ball with your paddle! Ball speed increases as you play!</p>
+            </div>
+
+            <div class="info-card">
+                <h3>🧠 Hand Detection</h3>
+                <p>AI identifies 21 key points on each hand including fingertips, knuckles, and palm.</p>
+            </div>
+
+            <div class="info-card">
+                <h3>⚡ Real-Time Tracking</h3>
+                <p>MediaPipe processes 30+ frames per second to track your hand movements smoothly.</p>
+            </div>
+
+            <div class="info-card">
+                <h3>🌍 Real-World Uses</h3>
+                <p>Used in VR games, sign language translation, touchless controls, and accessibility tools!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const gameCanvas = document.getElementById('gameCanvas');
+        const gameCtx = gameCanvas.getContext('2d');
+        const cameraCanvas = document.getElementById('cameraCanvas');
+        const cameraCtx = cameraCanvas.getContext('2d');
+        const video = document.getElementById('webcam');
+
+        // Game variables
+        const paddleWidth = 10;
+        const paddleHeight = 100;
+        const ballSize = 10;
+
+        let leftPaddleY = gameCanvas.height / 2 - paddleHeight / 2;
+        let rightPaddleY = gameCanvas.height / 2 - paddleHeight / 2;
+        let ballX = gameCanvas.width / 2;
+        let ballY = gameCanvas.height / 2;
+        let ballSpeedX = 5;
+        let ballSpeedY = 3;
+        let leftScore = 0;
+        let rightScore = 0;
+
+        let leftHandY = null;
+        let rightHandY = null;
+
+        // Trail effect variables
+        const trailLength = 15;
+        let ballTrail = [];
+
+        // Particle system
+        let particles = [];
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 8;
+                this.vy = (Math.random() - 0.5) * 8;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.02 + 0.015;
+                this.size = Math.random() * 4 + 2;
+                this.color = color;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+                this.vy += 0.2; // gravity
+            }
+
+            draw(ctx) {
+                if (this.life > 0) {
+                    ctx.save();
+                    ctx.globalAlpha = this.life;
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            isDead() {
+                return this.life <= 0;
+            }
+        }
+
+        function createParticles(x, y, color, count = 20) {
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        // Initialize MediaPipe Hands
+        const hands = new Hands({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+            }
+        });
+
+        hands.setOptions({
+            maxNumHands: 2,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        hands.onResults(onResults);
+
+        // Setup camera
+        async function setupCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user' },
+                audio: false
+            });
+            video.srcObject = stream;
+            return new Promise((resolve) => {
+                video.onloadedmetadata = () => {
+                    cameraCanvas.width = video.videoWidth;
+                    cameraCanvas.height = video.videoHeight;
+                    resolve(video);
+                };
+            });
+        }
+
+        function onResults(results) {
+            // Clear and draw camera feed
+            cameraCtx.save();
+            cameraCtx.clearRect(0, 0, cameraCanvas.width, cameraCanvas.height);
+            
+            // Mirror the camera
+            cameraCtx.translate(cameraCanvas.width, 0);
+            cameraCtx.scale(-1, 1);
+            
+            cameraCtx.drawImage(results.image, 0, 0, cameraCanvas.width, cameraCanvas.height);
+
+            leftHandY = null;
+            rightHandY = null;
+
+            if (results.multiHandLandmarks && results.multiHandedness) {
+                for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+                    const landmarks = results.multiHandLandmarks[i];
+                    const handedness = results.multiHandedness[i].label;
+                    
+                    // Draw hand landmarks with cool colors
+                    drawConnectors(cameraCtx, landmarks, HAND_CONNECTIONS, {
+                        color: handedness === 'Left' ? '#00FF00' : '#FF0000',
+                        lineWidth: 5
+                    });
+                    drawLandmarks(cameraCtx, landmarks, {
+                        color: handedness === 'Left' ? '#00FF00' : '#FF0000',
+                        fillColor: handedness === 'Left' ? '#00AA00' : '#AA0000',
+                        radius: 8
+                    });
+
+                    // Get index finger tip (landmark 8)
+                    const indexFingerTip = landmarks[8];
+                    const fingerY = indexFingerTip.y * gameCanvas.height;
+
+                    // Map hands to paddles
+                    if (handedness === 'Left') {
+                        rightHandY = fingerY;
+                    } else {
+                        leftHandY = fingerY;
+                    }
+                }
+            }
+
+            cameraCtx.restore();
+
+            document.getElementById('status').textContent = 
+                `${leftHandY !== null ? '✅' : '❌'} Left Hand | ${rightHandY !== null ? '✅' : '❌'} Right Hand`;
+        }
+
+        // Camera loop
+        async function cameraLoop() {
+            await hands.send({ image: video });
+            requestAnimationFrame(cameraLoop);
+        }
+
+        // Game loop
+        function gameLoop() {
+            // Clear canvas
+            gameCtx.fillStyle = '#000';
+            gameCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+            // Update and draw particles
+            particles = particles.filter(p => !p.isDead());
+            particles.forEach(p => {
+                p.update();
+                p.draw(gameCtx);
+            });
+
+            // Update paddle positions from hand tracking
+            if (leftHandY !== null) {
+                leftPaddleY = leftHandY - paddleHeight / 2;
+            }
+            if (rightHandY !== null) {
+                rightPaddleY = rightHandY - paddleHeight / 2;
+            }
+
+            // Keep paddles in bounds
+            leftPaddleY = Math.max(0, Math.min(gameCanvas.height - paddleHeight, leftPaddleY));
+            rightPaddleY = Math.max(0, Math.min(gameCanvas.height - paddleHeight, rightPaddleY));
+
+            // Draw paddles
+            gameCtx.fillStyle = '#667eea';
+            gameCtx.fillRect(0, leftPaddleY, paddleWidth, paddleHeight);
+            gameCtx.fillRect(gameCanvas.width - paddleWidth, rightPaddleY, paddleWidth, paddleHeight);
+
+            // Draw center line
+            gameCtx.strokeStyle = '#444';
+            gameCtx.setLineDash([5, 15]);
+            gameCtx.beginPath();
+            gameCtx.moveTo(gameCanvas.width / 2, 0);
+            gameCtx.lineTo(gameCanvas.width / 2, gameCanvas.height);
+            gameCtx.stroke();
+            gameCtx.setLineDash([]);
+
+            // Update ball position
+            ballX += ballSpeedX;
+            ballY += ballSpeedY;
+
+            // Add current ball position to trail
+            ballTrail.push({ x: ballX, y: ballY });
+            if (ballTrail.length > trailLength) {
+                ballTrail.shift();
+            }
+
+            // Ball collision with top/bottom
+            if (ballY <= ballSize || ballY >= gameCanvas.height - ballSize) {
+                ballSpeedY *= -1;
+            }
+
+            // Ball collision with left paddle
+            if (ballX <= paddleWidth + ballSize && 
+                ballY >= leftPaddleY && 
+                ballY <= leftPaddleY + paddleHeight) {
+                ballSpeedX = Math.abs(ballSpeedX) * 1.05;
+                ballX = paddleWidth + ballSize;
+                // Create particle explosion
+                createParticles(ballX, ballY, '#667eea', 25);
+            }
+
+            // Ball collision with right paddle
+            if (ballX >= gameCanvas.width - paddleWidth - ballSize && 
+                ballY >= rightPaddleY && 
+                ballY <= rightPaddleY + paddleHeight) {
+                ballSpeedX = -Math.abs(ballSpeedX) * 1.05;
+                ballX = gameCanvas.width - paddleWidth - ballSize;
+                // Create particle explosion
+                createParticles(ballX, ballY, '#667eea', 25);
+            }
+
+            // Score points
+            if (ballX <= 0) {
+                rightScore++;
+                document.getElementById('rightScore').textContent = rightScore;
+                resetBall();
+            }
+            if (ballX >= gameCanvas.width) {
+                leftScore++;
+                document.getElementById('leftScore').textContent = leftScore;
+                resetBall();
+            }
+
+            // Draw ball trail
+            for (let i = 0; i < ballTrail.length; i++) {
+                const alpha = (i + 1) / ballTrail.length;
+                const size = ballSize * alpha;
+                gameCtx.save();
+                gameCtx.globalAlpha = alpha * 0.5;
+                gameCtx.fillStyle = '#ffffff';
+                gameCtx.beginPath();
+                gameCtx.arc(ballTrail[i].x, ballTrail[i].y, size, 0, Math.PI * 2);
+                gameCtx.fill();
+                gameCtx.restore();
+            }
+
+            // Draw ball
+            gameCtx.fillStyle = '#fff';
+            gameCtx.beginPath();
+            gameCtx.arc(ballX, ballY, ballSize, 0, Math.PI * 2);
+            gameCtx.fill();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resetBall() {
+            ballX = gameCanvas.width / 2;
+            ballY = gameCanvas.height / 2;
+            ballSpeedX = (Math.random() > 0.5 ? 1 : -1) * 5;
+            ballSpeedY = (Math.random() - 0.5) * 6;
+            ballTrail = []; // Clear trail on reset
+        }
+
+        // Initialize
+        async function init() {
+            try {
+                await setupCamera();
+                video.play();
+                cameraLoop();
+                gameLoop();
+            } catch (error) {
+                document.getElementById('status').textContent = '❌ Error: ' + error.message;
+                console.error(error);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

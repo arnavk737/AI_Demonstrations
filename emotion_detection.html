@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Emotion Detector 😊</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        #canvas { transform: scaleX(-1); }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-pulse-scale {
+            animation: pulse 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        .emotion-bar {
+            transition: width 0.3s ease-out;
+        }
+        .home-button {
+    position: fixed;
+    top: 2rem;
+    left: 2rem;
+    background: white;
+    color: #667eea;
+    padding: 0.8rem 1.5rem;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: bold;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+}
+
+.home-button:hover {
+    transform: translateY(-3px);
+}
+
+@media (max-width: 768px) {
+    .home-button {
+        top: 1rem;
+        left: 1rem;
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500">
+    <a href="index.html" class="home-button">← Home</a>
+    <div class="min-h-screen p-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="bg-white rounded-3xl shadow-2xl p-8">
+                <!-- Header -->
+                <div class="text-center mb-6">
+                    <h1 class="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-2">
+                        AI Emotion Detector 🧠
+                    </h1>
+                    <p class="text-gray-600 text-lg">See how AI reads your emotions in real-time!</p>
+                </div>
+
+                <!-- Main Content Grid -->
+                <div class="grid lg:grid-cols-2 gap-6 mb-6">
+                    <!-- Video Section -->
+                    <div class="space-y-4">
+                        <div class="relative bg-black rounded-2xl overflow-hidden">
+                            <div id="loadingScreen" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
+                                <div class="text-white text-center">
+                                    <div class="text-6xl mb-4 animate-bounce">🎭</div>
+                                    <p class="text-xl" id="loadingText">Loading AI Emotion Detector...</p>
+                                    <p class="text-sm mt-2">Please allow camera access</p>
+                                </div>
+                            </div>
+                            <video id="video" class="hidden" playsinline></video>
+                            <canvas id="canvas" class="w-full h-auto"></canvas>
+                        </div>
+
+                        <!-- Current Emotion Display -->
+                        <div id="currentEmotion" class="bg-gradient-to-r from-yellow-400 to-orange-400 rounded-2xl p-6 text-center hidden">
+                            <div class="text-8xl mb-2" id="emotionEmoji">😊</div>
+                            <h2 class="text-4xl font-bold text-white mb-2" id="emotionName">Happy</h2>
+                            <p class="text-white text-xl" id="emotionConfidence">95% confident</p>
+                        </div>
+                    </div>
+
+                    <!-- Emotion Analysis Section -->
+                    <div class="space-y-4">
+                        <!-- All Emotions Display -->
+                        <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-6">
+                            <h3 class="text-2xl font-bold text-gray-800 mb-4">Emotion Analysis 📊</h3>
+                            <div id="emotionBars" class="space-y-3">
+                                <!-- Emotion bars will be inserted here -->
+                            </div>
+                        </div>
+
+                        <!-- Statistics -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-4 text-white text-center">
+                                <div class="text-3xl mb-2">👤</div>
+                                <div class="text-3xl font-bold" id="faceCount">0</div>
+                                <div class="text-sm opacity-90">Faces Detected</div>
+                            </div>
+                            <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl p-4 text-white text-center">
+                                <div class="text-3xl mb-2">🎯</div>
+                                <div class="text-3xl font-bold" id="detectionCount">0</div>
+                                <div class="text-sm opacity-90">Total Detections</div>
+                            </div>
+                        </div>
+
+                        <!-- Emotion History -->
+                        <div class="bg-white rounded-2xl p-6 border-2 border-purple-200">
+                            <h3 class="text-xl font-bold text-gray-800 mb-3">Emotion History 📈</h3>
+                            <div id="emotionHistory" class="flex flex-wrap gap-2">
+                                <p class="text-gray-500 text-sm">Your emotion timeline will appear here...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Educational Section -->
+                <div class="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6">
+                    <h3 class="text-2xl font-bold text-blue-900 mb-4">How Emotion Detection Works! 🤖</h3>
+                    <div class="grid md:grid-cols-3 gap-4 text-gray-700">
+                        <div class="bg-white rounded-xl p-4">
+                            <p class="font-semibold mb-2">👁️ Face Detection</p>
+                            <p class="text-sm">AI first finds your face and identifies 68 facial landmarks (eyes, nose, mouth, etc.)</p>
+                        </div>
+                        <div class="bg-white rounded-xl p-4">
+                            <p class="font-semibold mb-2">🧠 Emotion Recognition</p>
+                            <p class="text-sm">The AI analyzes facial expressions and compares them to thousands of emotion patterns it learned.</p>
+                        </div>
+                        <div class="bg-white rounded-xl p-4">
+                            <p class="font-semibold mb-2">🌍 Real-World Uses</p>
+                            <p class="text-sm">Used in mental health apps, customer service, education, and helping people with autism understand emotions!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const loadingScreen = document.getElementById('loadingScreen');
+        const loadingText = document.getElementById('loadingText');
+        const currentEmotionDiv = document.getElementById('currentEmotion');
+        const emotionBarsDiv = document.getElementById('emotionBars');
+        const emotionHistoryDiv = document.getElementById('emotionHistory');
+
+        let modelLoaded = false;
+        let detectionCount = 0;
+        let emotionHistory = [];
+        let lastDetectedEmotion = null;
+
+        const emotionConfig = {
+            happy: { emoji: '😊', color: 'from-yellow-400 to-yellow-500', name: 'Happy' },
+            sad: { emoji: '😢', color: 'from-blue-400 to-blue-500', name: 'Sad' },
+            angry: { emoji: '😠', color: 'from-red-400 to-red-500', name: 'Angry' },
+            disgusted: { emoji: '🤢', color: 'from-green-400 to-green-500', name: 'Disgusted' },
+            fearful: { emoji: '😨', color: 'from-purple-400 to-purple-500', name: 'Fearful' },
+            surprised: { emoji: '😲', color: 'from-orange-400 to-orange-500', name: 'Surprised' },
+            neutral: { emoji: '😐', color: 'from-gray-400 to-gray-500', name: 'Neutral' }
+        };
+
+        async function init() {
+            try {
+                loadingText.textContent = 'Requesting camera access...';
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480, facingMode: 'user' }
+                });
+                
+                video.srcObject = stream;
+                video.onloadedmetadata = async () => {
+                    video.play();
+                    await loadModels();
+                };
+            } catch (err) {
+                console.error('Camera error:', err);
+                loadingScreen.innerHTML = `
+                    <div class="text-white text-center">
+                        <div class="text-6xl mb-4">❌</div>
+                        <p class="text-xl">Camera access denied!</p>
+                        <p class="text-sm mt-2">Please allow camera access and refresh the page</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadModels() {
+            try {
+                loadingText.textContent = 'Loading AI models... (this may take 20-30 seconds)';
+                
+                // Load face-api models
+                await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model');
+                await faceapi.nets.faceExpressionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model');
+                await faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model');
+                
+                modelLoaded = true;
+                loadingScreen.classList.add('hidden');
+                detectEmotions();
+            } catch (err) {
+                console.error('Model load error:', err);
+                loadingScreen.innerHTML = `
+                    <div class="text-white text-center">
+                        <div class="text-6xl mb-4">⚠️</div>
+                        <p class="text-xl">Error loading AI models</p>
+                        <p class="text-sm mt-2">Error: ${err.message}</p>
+                        <button onclick="location.reload()" class="mt-4 bg-white text-purple-600 px-6 py-2 rounded-lg font-bold">
+                            Try Again
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        async function detectEmotions() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            async function detect() {
+                if (video.readyState === video.HAVE_ENOUGH_DATA && modelLoaded) {
+                    // Clear and draw video
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.save();
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+                    ctx.restore();
+                    
+                    try {
+                        // Detect faces with expressions
+                        const detections = await faceapi
+                            .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+                            .withFaceLandmarks()
+                            .withFaceExpressions();
+                        
+                        if (detections && detections.length > 0) {
+                            document.getElementById('faceCount').textContent = detections.length;
+                            
+                            // Draw face detection boxes
+                            detections.forEach(detection => {
+                                const box = detection.detection.box;
+                                
+                                // Mirror the box coordinates
+                                const mirroredX = canvas.width - box.x - box.width;
+                                
+                                // Draw box
+                                ctx.strokeStyle = '#00ff00';
+                                ctx.lineWidth = 3;
+                                ctx.strokeRect(mirroredX, box.y, box.width, box.height);
+                                
+                                // Draw landmarks
+                                const landmarks = detection.landmarks.positions;
+                                ctx.fillStyle = '#00ff00';
+                                landmarks.forEach(point => {
+                                    const mirroredPointX = canvas.width - point.x;
+                                    ctx.beginPath();
+                                    ctx.arc(mirroredPointX, point.y, 2, 0, 2 * Math.PI);
+                                    ctx.fill();
+                                });
+                            });
+                            
+                            // Process first face emotions
+                            const expressions = detections[0].expressions;
+                            updateEmotionDisplay(expressions);
+                        } else {
+                            currentEmotionDiv.classList.add('hidden');
+                            document.getElementById('faceCount').textContent = '0';
+                        }
+                    } catch (err) {
+                        console.error('Detection error:', err);
+                    }
+                }
+                requestAnimationFrame(detect);
+            }
+            
+            detect();
+        }
+
+        function updateEmotionDisplay(expressions) {
+            // Get all emotions sorted by confidence
+            const emotionArray = Object.entries(expressions)
+                .map(([emotion, value]) => ({ emotion, value }))
+                .sort((a, b) => b.value - a.value);
+            
+            // Update current emotion (highest confidence)
+            const topEmotion = emotionArray[0];
+            const config = emotionConfig[topEmotion.emotion];
+            
+            if (config) {
+                currentEmotionDiv.classList.remove('hidden');
+                document.getElementById('emotionEmoji').textContent = config.emoji;
+                document.getElementById('emotionName').textContent = config.name;
+                document.getElementById('emotionConfidence').textContent = `${(topEmotion.value * 100).toFixed(1)}% confident`;
+                
+                // Update gradient color
+                currentEmotionDiv.className = `bg-gradient-to-r ${config.color} rounded-2xl p-6 text-center animate-pulse-scale`;
+                
+                // Only count as detection and add to history if emotion CHANGED
+                if (lastDetectedEmotion !== topEmotion.emotion) {
+                    detectionCount++;
+                    document.getElementById('detectionCount').textContent = detectionCount;
+                    addToHistory(config.emoji, config.name);
+                    lastDetectedEmotion = topEmotion.emotion;
+                }
+            }
+            
+            // Update emotion bars
+            updateEmotionBars(emotionArray);
+        }
+
+        function updateEmotionBars(emotionArray) {
+            // Only update innerHTML if bars don't exist yet
+            if (emotionBarsDiv.children.length === 0) {
+                emotionArray.forEach(({ emotion }) => {
+                    const config = emotionConfig[emotion];
+                    if (!config) return;
+                    
+                    const barHTML = `
+                        <div class="emotion-item" data-emotion="${emotion}">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-sm font-semibold text-gray-700">
+                                    ${config.emoji} ${config.name}
+                                </span>
+                                <span class="text-sm font-bold text-gray-900 percentage-value">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                <div class="bg-gradient-to-r ${config.color} h-3 emotion-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    `;
+                    emotionBarsDiv.innerHTML += barHTML;
+                });
+            }
+            
+            // Smoothly update existing bars
+            emotionArray.forEach(({ emotion, value }) => {
+                const percentage = (value * 100).toFixed(1);
+                const emotionItem = emotionBarsDiv.querySelector(`[data-emotion="${emotion}"]`);
+                
+                if (emotionItem) {
+                    const bar = emotionItem.querySelector('.emotion-bar');
+                    const percentageText = emotionItem.querySelector('.percentage-value');
+                    
+                    if (bar) bar.style.width = `${percentage}%`;
+                    if (percentageText) percentageText.textContent = `${percentage}%`;
+                }
+            });
+        }
+
+        function addToHistory(emoji, name) {
+            const now = new Date().toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            emotionHistory.push({ emoji, name, time: now });
+            
+            // Keep only last 15 emotions
+            if (emotionHistory.length > 15) {
+                emotionHistory.shift();
+            }
+            
+            // Update history display
+            emotionHistoryDiv.innerHTML = emotionHistory.map(item => 
+                `<span class="inline-flex items-center bg-white px-3 py-2 rounded-lg border-2 border-purple-200 text-sm fade-in">
+                    <span class="text-2xl mr-2">${item.emoji}</span>
+                    <span class="font-semibold">${item.name}</span>
+                    <span class="text-gray-500 text-xs ml-2">${item.time}</span>
+                </span>`
+            ).reverse().join('');
+        }
+
+        // Start initialization
+        init();
+    </script>
+</body>
+</html>
