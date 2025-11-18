@@ -153,6 +153,7 @@
             background: #000;
             border-radius: 10px;
             overflow: hidden;
+            margin-bottom: 1.5rem;
         }
 
         #webcam {
@@ -163,6 +164,18 @@
             width: 100%;
             height: auto;
             display: block;
+        }
+
+        .camera-instructions {
+            margin-top: 1rem;
+        }
+
+        .camera-instruction-item {
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 1rem;
         }
 
         .score-display {
@@ -251,7 +264,7 @@
     <a href="index.html" class="home-button">← Home</a>
 
     <div class="container">
-        <h1>Gesture Pong</h1>
+        <h1>👋 Gesture Pong</h1>
         <p class="subtitle">Control the paddles with your hands!</p>
 
         <div class="main-content">
@@ -297,24 +310,21 @@
                     <canvas id="cameraCanvas"></canvas>
                     <video id="webcam" autoplay playsinline></video>
                 </div>
+                
+                <!-- Instructions moved here -->
+                <div class="camera-instructions">
+                    <div class="camera-instruction-item">
+                        <strong>1️⃣ Show Your Hands:</strong> Hold your hands up to the camera. Left hand controls left paddle, right hand controls right paddle!
+                    </div>
+                    <div class="info-card">
+                        <h3>2️⃣ Hit the Ball</h3>
+                        <p>Block the ball with your paddle! Ball speed increases as you play!</p>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="info-section">
-            <div class="info-card">
-                <h3>1️⃣ Show Your Hands</h3>
-                <p>Hold your hands up to the camera. Left hand controls left paddle, right hand controls right paddle!</p>
-            </div>
-
-            <div class="info-card">
-                <h3>2️⃣ Point Your Finger</h3>
-                <p>Use your index finger (pointing finger) to move the paddle up and down!</p>
-            </div>
-
-            <div class="info-card">
-                <h3>3️⃣ Hit the Ball</h3>
-                <p>Block the ball with your paddle! Ball speed increases as you play!</p>
-            </div>
 
             <div class="info-card">
                 <h3>🧠 Hand Detection</h3>
