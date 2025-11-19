@@ -21,6 +21,25 @@
             padding: 2rem;
         }
 
+        .home-button {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            background: white;
+            color: #667eea;
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .home-button:hover {
+            transform: translateY(-3px);
+        }
+
         .container {
             max-width: 1200px;
             width: 100%;
@@ -81,6 +100,26 @@
             animation: dance 0.5s ease infinite;
         }
 
+        .character.spin {
+            animation: spin 1s ease;
+        }
+
+        .character.flip {
+            animation: flip 0.8s ease;
+        }
+
+        .character.wave {
+            animation: wave 0.5s ease 3;
+        }
+
+        .character.grow {
+            animation: grow 0.5s ease;
+        }
+
+        .character.shrink {
+            animation: shrink 0.5s ease;
+        }
+
         @keyframes jump {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-50px); }
@@ -89,6 +128,32 @@
         @keyframes dance {
             0%, 100% { transform: rotate(-10deg); }
             50% { transform: rotate(10deg); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes flip {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(360deg); }
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-15deg); }
+            75% { transform: rotate(15deg); }
+        }
+
+        @keyframes grow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.5); }
+        }
+
+        @keyframes shrink {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(0.5); }
         }
 
         .command-display {
@@ -164,6 +229,8 @@
             background: #f8f9fa;
             padding: 1.5rem;
             border-radius: 10px;
+            max-height: 500px;
+            overflow-y: auto;
         }
 
         .commands-list h3 {
@@ -176,7 +243,7 @@
             margin: 0.5rem 0;
             background: white;
             border-radius: 5px;
-            font-size: 1.1rem;
+            font-size: 1rem;
         }
 
         .info-section {
@@ -203,24 +270,6 @@
             color: #666;
             line-height: 1.6;
             font-size: 1rem;
-        }
-
-        .home-button {
-            position: fixed;
-            top: 2rem;
-            left: 2rem;
-            background: white;
-            color: #667eea;
-            padding: 0.8rem 1.5rem;
-            border-radius: 25px;
-            text-decoration: none;
-            font-weight: bold;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            transition: transform 0.3s ease;
-        }
-
-        .home-button:hover {
-            transform: translateY(-3px);
         }
 
         @media (max-width: 768px) {
@@ -255,7 +304,7 @@
         <div class="main-content">
             <div class="game-section">
                 <div class="game-area">
-                    <div class="command-display" id="currentCommand">Say "jump" or "dance"!</div>
+                    <div class="command-display" id="currentCommand">Say a command!</div>
                     <div class="character" id="character">🐱</div>
                     <div class="microphone" id="microphone" onclick="toggleListening()">🎤</div>
                 </div>
@@ -268,11 +317,36 @@
                 
                 <div class="commands-list">
                     <h3>📝 Commands</h3>
+                    <div class="command-item"><strong>Actions:</strong></div>
                     <div class="command-item">🦘 "jump" - Make it jump</div>
                     <div class="command-item">💃 "dance" - Make it dance</div>
+                    <div class="command-item">🌀 "spin" - Make it spin</div>
+                    <div class="command-item">🔄 "flip" - Make it flip</div>
+                    <div class="command-item">👋 "wave" - Make it wave</div>
+                    <div class="command-item">📈 "grow" - Make it bigger</div>
+                    <div class="command-item">📉 "shrink" - Make it smaller</div>
+                    
+                    <div class="command-item" style="margin-top: 1rem;"><strong>Animals:</strong></div>
                     <div class="command-item">🐕 "dog" - Change to dog</div>
                     <div class="command-item">🐱 "cat" - Change to cat</div>
                     <div class="command-item">🐻 "bear" - Change to bear</div>
+                    <div class="command-item">🦁 "lion" - Change to lion</div>
+                    <div class="command-item">🐯 "tiger" - Change to tiger</div>
+                    <div class="command-item">🐼 "panda" - Change to panda</div>
+                    <div class="command-item">🐨 "koala" - Change to koala</div>
+                    <div class="command-item">🦊 "fox" - Change to fox</div>
+                    <div class="command-item">🐺 "wolf" - Change to wolf</div>
+                    <div class="command-item">🐸 "frog" - Change to frog</div>
+                    <div class="command-item">🐷 "pig" - Change to pig</div>
+                    <div class="command-item">🐮 "cow" - Change to cow</div>
+                    <div class="command-item">🐵 "monkey" - Change to monkey</div>
+                    <div class="command-item">🐰 "rabbit" - Change to rabbit</div>
+                    <div class="command-item">🐔 "chicken" - Change to chicken</div>
+                    <div class="command-item">🦆 "duck" - Change to duck</div>
+                    <div class="command-item">🦉 "owl" - Change to owl</div>
+                    <div class="command-item">🐢 "turtle" - Change to turtle</div>
+                    <div class="command-item">🦋 "butterfly" - Change to butterfly</div>
+                    <div class="command-item">🐝 "bee" - Change to bee</div>
                 </div>
             </div>
         </div>
@@ -280,7 +354,7 @@
         <div class="info-section">
             <div class="info-card">
                 <h3>🎯 How to Play</h3>
-                <p>Click the microphone and say commands like "jump", "dance", or animal names. The AI will recognize your voice and make the character respond!</p>
+                <p>Click the microphone and say commands like "jump", "dance", "spin", or animal names. The AI will recognize your voice and make the character respond!</p>
             </div>
 
             <div class="info-card">
@@ -301,9 +375,10 @@
     </div>
 
     <script>
-        let recognition;
+                let recognition;
         let isListening = false;
         let score = 0;
+        let lastWords = []; // Track last words spoken
 
         // Check if browser supports speech recognition
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -314,15 +389,32 @@
             recognition.lang = 'en-US';
 
             recognition.onresult = (event) => {
-                const transcript = Array.from(event.results)
-                    .map(result => result[0])
-                    .map(result => result.transcript)
-                    .join('')
-                    .toLowerCase();
+    // Get only the final results, not interim ones
+    const results = Array.from(event.results);
+    const finalTranscript = results
+        .filter(result => result.isFinal)
+        .map(result => result[0].transcript)
+        .join('')
+        .toLowerCase();
 
-                document.getElementById('currentCommand').textContent = `You said: "${transcript}"`;
-                processCommand(transcript);
-            };
+    // For display, show interim results
+    const interimTranscript = results
+        .map(result => result[0].transcript)
+        .join('')
+        .toLowerCase();
+
+    // Limit to last 10 words for display
+    const words = interimTranscript.split(' ');
+    lastWords = words.slice(-10);
+    const displayText = lastWords.join(' ');
+
+    document.getElementById('currentCommand').textContent = `You said: "${displayText}"`;
+    
+    // Only process commands on final results
+    if (finalTranscript) {
+        processCommand(finalTranscript);
+    }
+};
 
             recognition.onerror = (event) => {
                 console.error('Speech recognition error:', event.error);
@@ -331,7 +423,7 @@
 
             recognition.onend = () => {
                 if (isListening) {
-                    recognition.start(); // Restart if still listening
+                    recognition.start();
                 }
             };
         } else {
@@ -348,6 +440,7 @@
                 isListening = false;
                 mic.classList.remove('listening');
                 document.getElementById('status').textContent = '🎤 Click to start listening';
+                lastWords = []; // Reset when stopping
             } else {
                 recognition.start();
                 isListening = true;
@@ -358,40 +451,97 @@
 
         function processCommand(text) {
             const character = document.getElementById('character');
+            const statusEl = document.getElementById('status');
             let commandExecuted = false;
 
+            // Action commands
             if (text.includes('jump')) {
-                character.classList.remove('dance');
+                character.classList.remove('dance', 'spin', 'flip', 'wave', 'grow', 'shrink');
                 character.classList.add('jump');
                 setTimeout(() => character.classList.remove('jump'), 500);
                 commandExecuted = true;
-                document.getElementById('status').textContent = '✅ Jump command executed!';
+                statusEl.textContent = '✅ Jump command executed!';
             }
 
             if (text.includes('dance')) {
-                character.classList.remove('jump');
+                character.classList.remove('jump', 'spin', 'flip', 'wave', 'grow', 'shrink');
                 character.classList.add('dance');
                 setTimeout(() => character.classList.remove('dance'), 2000);
                 commandExecuted = true;
-                document.getElementById('status').textContent = '✅ Dance command executed!';
+                statusEl.textContent = '✅ Dance command executed!';
             }
 
-            if (text.includes('dog')) {
-                character.textContent = '🐕';
+            if (text.includes('spin')) {
+                character.classList.remove('dance', 'jump', 'flip', 'wave', 'grow', 'shrink');
+                character.classList.add('spin');
+                setTimeout(() => character.classList.remove('spin'), 1000);
                 commandExecuted = true;
-                document.getElementById('status').textContent = '✅ Changed to dog!';
+                statusEl.textContent = '✅ Spin command executed!';
             }
 
-            if (text.includes('cat')) {
-                character.textContent = '🐱';
+            if (text.includes('flip')) {
+                character.classList.remove('dance', 'jump', 'spin', 'wave', 'grow', 'shrink');
+                character.classList.add('flip');
+                setTimeout(() => character.classList.remove('flip'), 800);
                 commandExecuted = true;
-                document.getElementById('status').textContent = '✅ Changed to cat!';
+                statusEl.textContent = '✅ Flip command executed!';
             }
 
-            if (text.includes('bear')) {
-                character.textContent = '🐻';
+            if (text.includes('wave')) {
+                character.classList.remove('dance', 'jump', 'spin', 'flip', 'grow', 'shrink');
+                character.classList.add('wave');
+                setTimeout(() => character.classList.remove('wave'), 1500);
                 commandExecuted = true;
-                document.getElementById('status').textContent = '✅ Changed to bear!';
+                statusEl.textContent = '✅ Wave command executed!';
+            }
+
+            if (text.includes('grow') || text.includes('bigger')) {
+                character.classList.remove('dance', 'jump', 'spin', 'flip', 'wave', 'shrink');
+                character.classList.add('grow');
+                setTimeout(() => character.classList.remove('grow'), 500);
+                commandExecuted = true;
+                statusEl.textContent = '✅ Grow command executed!';
+            }
+
+            if (text.includes('shrink') || text.includes('smaller')) {
+                character.classList.remove('dance', 'jump', 'spin', 'flip', 'wave', 'grow');
+                character.classList.add('shrink');
+                setTimeout(() => character.classList.remove('shrink'), 500);
+                commandExecuted = true;
+                statusEl.textContent = '✅ Shrink command executed!';
+            }
+
+            // Animal commands
+            const animals = {
+                'dog': '🐕',
+                'cat': '🐱',
+                'bear': '🐻',
+                'lion': '🦁',
+                'tiger': '🐯',
+                'panda': '🐼',
+                'koala': '🐨',
+                'fox': '🦊',
+                'wolf': '🐺',
+                'frog': '🐸',
+                'pig': '🐷',
+                'cow': '🐮',
+                'monkey': '🐵',
+                'rabbit': '🐰',
+                'chicken': '🐔',
+                'duck': '🦆',
+                'owl': '🦉',
+                'turtle': '🐢',
+                'butterfly': '🦋',
+                'bee': '🐝'
+            };
+
+            for (const [name, emoji] of Object.entries(animals)) {
+                if (text.includes(name)) {
+                    character.textContent = emoji;
+                    commandExecuted = true;
+                    statusEl.textContent = `✅ Changed to ${name}!`;
+                    break;
+                }
             }
 
             if (commandExecuted) {
@@ -399,6 +549,7 @@
                 document.getElementById('score').textContent = score;
             }
         }
+
     </script>
 </body>
 </html>

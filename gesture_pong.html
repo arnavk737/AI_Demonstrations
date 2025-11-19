@@ -95,11 +95,6 @@
             margin-bottom: 0.5rem;
         }
 
-        .player-info p {
-            color: #666;
-            font-size: 1.1rem;
-        }
-
         .instructions {
             margin-top: 1.5rem;
         }
@@ -117,6 +112,7 @@
             border-radius: 15px;
             padding: 2rem;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
         }
 
         .game-container {
@@ -131,6 +127,61 @@
             width: 100%;
             height: auto;
             display: block;
+        }
+
+        .countdown-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 8rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 20px rgba(0,0,0,0.8);
+            z-index: 10;
+            display: none;
+        }
+
+        .game-controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .camera-section {
@@ -281,14 +332,20 @@
                 </div>
 
                 <div class="instructions">
-                    <div class="instruction-item">☝️ Point index finger up/down</div>
                     <div class="instruction-item">⚡ Speed increases over time!</div>
                 </div>
             </div>
 
             <div class="game-section">
                 <div class="game-container">
+                    <div class="countdown-overlay" id="countdown">3</div>
                     <canvas id="gameCanvas" width="800" height="600"></canvas>
+                </div>
+
+                <div class="game-controls">
+                    <button class="btn btn-success" id="startBtn">Start Game 🎮</button>
+                    <button class="btn btn-warning" id="pauseBtn" style="display:none;">Pause ⏸️</button>
+                    <button class="btn btn-primary" id="resumeBtn" style="display:none;">Resume ▶️</button>
                 </div>
 
                 <div class="score-display">
@@ -312,22 +369,20 @@
                     <video id="webcam" autoplay playsinline></video>
                 </div>
                 
-                <!-- Instructions moved here -->
                 <div class="camera-instructions">
                     <div class="info-card">
                         <h3>1️⃣ Show Your Hands:</h3> 
                         <p>Hold your hands up to the camera. Left hand controls left paddle, right hand controls right paddle!</p>
                     </div>
                     <div class="info-card">
-                        <h3>2️⃣ Hit the Ball</h3>
-                        <p>Block the ball with your paddle! Ball speed increases as you play!</p>
+                        <h3>2️⃣ Move your hand:</h3> 
+                        <p>Use your hand up and down to move the paddle up and down!</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="info-section">
-
             <div class="info-card">
                 <h3>🧠 Hand Detection</h3>
                 <p>AI identifies 21 key points on each hand including fingertips, knuckles, and palm.</p>
@@ -351,6 +406,10 @@
         const cameraCanvas = document.getElementById('cameraCanvas');
         const cameraCtx = cameraCanvas.getContext('2d');
         const video = document.getElementById('webcam');
+        const countdownEl = document.getElementById('countdown');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resumeBtn = document.getElementById('resumeBtn');
 
         // Game variables
         const paddleWidth = 10;
@@ -368,6 +427,9 @@
 
         let leftHandY = null;
         let rightHandY = null;
+        let gameStarted = false;
+        let gamePaused = false;
+        let gameLoopId = null;
 
         // Trail effect variables
         const trailLength = 15;
@@ -505,8 +567,22 @@
             requestAnimationFrame(cameraLoop);
         }
 
+        // Countdown function
+        async function showCountdown() {
+            countdownEl.style.display = 'block';
+            for (let i = 3; i > 0; i--) {
+                countdownEl.textContent = i;
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            countdownEl.textContent = 'GO!';
+            await new Promise(resolve => setTimeout(resolve, 500));
+            countdownEl.style.display = 'none';
+        }
+
         // Game loop
         function gameLoop() {
+            if (!gameStarted || gamePaused) return;
+
             // Clear canvas
             gameCtx.fillStyle = '#000';
             gameCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
@@ -565,7 +641,6 @@
                 ballY <= leftPaddleY + paddleHeight) {
                 ballSpeedX = Math.abs(ballSpeedX) * 1.05;
                 ballX = paddleWidth + ballSize;
-                // Create particle explosion
                 createParticles(ballX, ballY, '#667eea', 25);
             }
 
@@ -575,7 +650,6 @@
                 ballY <= rightPaddleY + paddleHeight) {
                 ballSpeedX = -Math.abs(ballSpeedX) * 1.05;
                 ballX = gameCanvas.width - paddleWidth - ballSize;
-                // Create particle explosion
                 createParticles(ballX, ballY, '#667eea', 25);
             }
 
@@ -610,7 +684,7 @@
             gameCtx.arc(ballX, ballY, ballSize, 0, Math.PI * 2);
             gameCtx.fill();
 
-            requestAnimationFrame(gameLoop);
+            gameLoopId = requestAnimationFrame(gameLoop);
         }
 
         function resetBall() {
@@ -618,8 +692,42 @@
             ballY = gameCanvas.height / 2;
             ballSpeedX = (Math.random() > 0.5 ? 1 : -1) * 5;
             ballSpeedY = (Math.random() - 0.5) * 6;
-            ballTrail = []; // Clear trail on reset
+            ballTrail = [];
         }
+
+        // Button handlers
+        async function startGame() {
+            startBtn.disabled = true;
+            await showCountdown();
+            gameStarted = true;
+            gamePaused = false;
+            startBtn.style.display = 'none';
+            pauseBtn.style.display = 'inline-block';
+            gameLoop();
+        }
+
+        function pauseGame() {
+            gamePaused = true;
+            pauseBtn.style.display = 'none';
+            resumeBtn.style.display = 'inline-block';
+            if (gameLoopId) {
+                cancelAnimationFrame(gameLoopId);
+            }
+        }
+
+        async function resumeGame() {
+            resumeBtn.disabled = true;
+            await showCountdown();
+            gamePaused = false;
+            resumeBtn.style.display = 'none';
+            pauseBtn.style.display = 'inline-block';
+            resumeBtn.disabled = false;
+            gameLoop();
+        }
+
+        startBtn.addEventListener('click', startGame);
+        pauseBtn.addEventListener('click', pauseGame);
+        resumeBtn.addEventListener('click', resumeGame);
 
         // Initialize
         async function init() {
@@ -627,7 +735,7 @@
                 await setupCamera();
                 video.play();
                 cameraLoop();
-                gameLoop();
+                document.getElementById('status').textContent = '✅ AI Ready! Click Start Game to begin!';
             } catch (error) {
                 document.getElementById('status').textContent = '❌ Error: ' + error.message;
                 console.error(error);

@@ -3,290 +3,322 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Pose Master 🤖</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.0"></script>
+    <title>Pose Detection Game - AI for Good</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            margin: 0;
-            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }
-        #canvas {
-            transform: scaleX(-1);
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        .animate-pulse {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-25px); }
-        }
-        .animate-bounce {
-            animation: bounce 1s infinite;
-        }
+        
         .home-button {
-    position: fixed;
-    top: 2rem;
-    left: 2rem;
-    background: white;
-    color: #667eea;
-    padding: 0.8rem 1.5rem;
-    border-radius: 25px;
-    text-decoration: none;
-    font-weight: bold;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    transition: transform 0.3s ease;
-    z-index: 1000;
-}
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            background: white;
+            color: #667eea;
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
 
-.home-button:hover {
-    transform: translateY(-3px);
-}
-
-@media (max-width: 768px) {
-    .home-button {
-        top: 1rem;
-        left: 1rem;
-        padding: 0.6rem 1rem;
-        font-size: 0.9rem;
-    }
+        .home-button:hover {
+            transform: translateY(-3px);
+        }
+        
+        #canvas {
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    display: block;
+    margin: 0 auto;
 }
 
     </style>
 </head>
-<body class="bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400">
+<body class="p-8">
     <a href="index.html" class="home-button">← Home</a>
-    <div class="min-h-screen p-4">
-        <div class="max-w-6xl mx-auto">
-            <div class="bg-white rounded-3xl shadow-2xl p-8">
-                <!-- Header -->
-                <div class="text-center mb-6">
-                    <h1 class="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-2">
-                        AI Pose Master 🤖
-                    </h1>
-                    <p class="text-gray-600 text-lg">Match the poses as fast as you can!</p>
-                </div>
 
-                <!-- Score Cards -->
-                <div class="grid md:grid-cols-3 gap-6 mb-6">
-                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-4 text-white text-center">
-                        <div class="text-3xl mb-2">🎯</div>
-                        <div class="text-3xl font-bold" id="score">0</div>
-                        <div class="text-sm opacity-90">Score</div>
-                    </div>
-                    <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-4 text-white text-center">
-                        <div class="text-3xl mb-2">🏆</div>
-                        <div class="text-3xl font-bold" id="bestScore">0</div>
-                        <div class="text-sm opacity-90">Best Score</div>
-                    </div>
-                    <div class="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-4 text-white text-center">
-                        <div class="text-3xl mb-2">⏱️</div>
-                        <div class="text-3xl font-bold" id="timeLeft">60s</div>
-                        <div class="text-sm opacity-90">Time Left</div>
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-5xl font-bold text-white text-center mb-4">🤸 Pose Detection Game</h1>
+        <p class="text-xl text-white text-center mb-8 opacity-90">Match the poses as fast as you can!</p>
+
+        <div id="loadingScreen" class="bg-white rounded-2xl p-12 text-center shadow-2xl">
+            <div class="animate-pulse">
+                <div class="text-6xl mb-4">📹</div>
+                <h2 class="text-3xl font-bold text-purple-600 mb-4">Loading AI Camera...</h2>
+                <p class="text-gray-600 text-lg">Please allow camera access when prompted</p>
+            </div>
+        </div>
+
+        <div id="gameContainer" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white rounded-2xl p-6 shadow-2xl">
+                    <h3 class="text-2xl font-bold text-purple-600 mb-4">🎯 Current Pose</h3>
+                    <div id="currentPose" class="text-center">
+                        <div class="text-6xl mb-2">🎮</div>
+                        <div class="text-2xl font-bold">Ready?</div>
+                        <div class="text-gray-600 mt-2">Click Start to begin!</div>
                     </div>
                 </div>
 
-                <!-- Current Pose Display -->
-                <div id="poseDisplay" class="bg-gradient-to-r from-yellow-400 to-orange-400 rounded-2xl p-6 mb-6 text-center animate-pulse hidden">
-                    <div class="text-6xl mb-2" id="poseEmoji"></div>
-                    <h2 class="text-3xl font-bold text-white mb-2" id="poseName"></h2>
-                    <p class="text-white text-lg" id="poseDescription"></p>
-                </div>
-
-                <!-- Message Display -->
-                <div id="messageBox" class="bg-green-100 border-2 border-green-500 rounded-2xl p-4 mb-6 text-center hidden">
-                    <p class="text-green-800 text-xl font-bold" id="message"></p>
-                </div>
-
-                <!-- Video Canvas -->
-                <div class="relative bg-black rounded-2xl overflow-hidden mb-6">
-                    <div id="loadingScreen" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
-                        <div class="text-white text-center">
-                            <div class="text-6xl mb-4 animate-bounce">📹</div>
-                            <p class="text-xl" id="loadingText">Loading AI Camera...</p>
-                            <p class="text-sm mt-2">Please allow camera access when prompted</p>
-                        </div>
+                <div class="bg-white rounded-2xl p-6 shadow-2xl">
+                    <h3 class="text-2xl font-bold text-purple-600 mb-4">📊 Score</h3>
+                    <div class="text-center">
+                        <div id="score" class="text-6xl font-bold text-purple-600">0</div>
+                        <div class="text-gray-600 mt-2">Poses Matched</div>
                     </div>
-                    <video id="video" class="hidden" playsinline></video>
-                    <canvas id="canvas" class="w-full h-auto"></canvas>
                 </div>
 
-                <!-- Control Buttons -->
-                <div class="flex gap-4 justify-center">
-                    <button id="startBtn" class="bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-4 rounded-xl text-xl font-bold hover:from-green-600 hover:to-green-700 transform hover:scale-105 transition-all shadow-lg hidden">
+                <div class="bg-white rounded-2xl p-6 shadow-2xl">
+                    <h3 class="text-2xl font-bold text-purple-600 mb-4">⏱️ Time</h3>
+                    <div class="text-center">
+                        <div id="timer" class="text-6xl font-bold text-purple-600">30</div>
+                        <div class="text-gray-600 mt-2">Seconds Left</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 shadow-2xl mb-6">
+                <canvas id="canvas"></canvas>
+                <div class="flex gap-4 justify-center mt-4">
+                    <button id="startBtn" class="bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-4 rounded-xl text-xl font-bold hover:from-green-600 hover:to-green-700 transform hover:scale-105 transition-all shadow-lg">
                         Start Game! 🎮
                     </button>
-                    <button id="resetBtn" class="bg-gradient-to-r from-red-500 to-red-600 text-white px-8 py-4 rounded-xl text-xl font-bold hover:from-red-600 hover:to-red-700 transform hover:scale-105 transition-all shadow-lg hidden">
-                        🔄 Reset Game
+                    <button id="resetBtn" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-4 rounded-xl text-xl font-bold hover:from-blue-600 hover:to-blue-700 transform hover:scale-105 transition-all shadow-lg hidden">
+                        Play Again 🔄
                     </button>
                 </div>
+            </div>
 
-                <!-- Educational Section -->
-                <div class="mt-8 bg-blue-50 rounded-2xl p-6">
-                    <h3 class="text-2xl font-bold text-blue-900 mb-4">How AI Sees You! 🤖</h3>
-                    <div class="grid md:grid-cols-2 gap-4 text-gray-700">
-                        <div class="bg-white rounded-xl p-4">
-                            <p class="font-semibold mb-2">🎯 What's Happening?</p>
-                            <p class="text-sm">The AI detects 17 points on your body in real-time and tracks your movements!</p>
-                        </div>
-                        <div class="bg-white rounded-xl p-4">
-                            <p class="font-semibold mb-2">🧠 How It Works</p>
-                            <p class="text-sm">Using machine learning, the AI learned from thousands of images to recognize human poses.</p>
-                        </div>
-                        <div class="bg-white rounded-xl p-4">
-                            <p class="font-semibold mb-2">🌍 Real-World Uses</p>
-                            <p class="text-sm">This technology helps in sports training, healthcare, and making games more interactive!</p>
-                        </div>
-                        <div class="bg-white rounded-xl p-4">
-                            <p class="font-semibold mb-2">✨ AI For Good</p>
-                            <p class="text-sm">AI can help people exercise correctly, detect falls in elderly care, and more!</p>
-                        </div>
-                    </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white rounded-xl p-6 shadow-xl">
+                    <h3 class="text-xl font-bold text-purple-600 mb-2">🎯 What's Happening?</h3>
+                    <p class="text-gray-600">The AI detects 17 points on your body in real-time and tracks your movements!</p>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-xl">
+                    <h3 class="text-xl font-bold text-purple-600 mb-2">🧠 How It Works</h3>
+                    <p class="text-gray-600">Using machine learning, the AI learned from thousands of images to recognize human poses.</p>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-xl">
+                    <h3 class="text-xl font-bold text-purple-600 mb-2">🌍 Real-World Uses</h3>
+                    <p class="text-gray-600">This technology helps in sports training, healthcare, and making games more interactive!</p>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-xl">
+                    <h3 class="text-xl font-bold text-purple-600 mb-2">✨ AI For Good</h3>
+                    <p class="text-gray-600">AI can help people exercise correctly, detect falls in elderly care, and more!</p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        const video = document.getElementById('video');
+        const video = document.createElement('video');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const startBtn = document.getElementById('startBtn');
         const resetBtn = document.getElementById('resetBtn');
         const loadingScreen = document.getElementById('loadingScreen');
-        const loadingText = document.getElementById('loadingText');
-        const poseDisplay = document.getElementById('poseDisplay');
-        const messageBox = document.getElementById('messageBox');
+        const gameContainer = document.getElementById('gameContainer');
 
-        let detector = null;
-        let gameActive = false;
+        let detector;
         let score = 0;
-        let bestScore = 0;
-        let timeLeft = 60;
-        let currentPose = null;
-        let timer = null;
-        let animationId = null;
+        let timeLeft = 30;
+        let gameActive = false;
+        let currentPoseIndex = 0;
+        let timerInterval;
 
         const poses = [
             { name: 'T-Pose', emoji: '🧍', description: 'Arms straight out to sides', check: checkTPose },
             { name: 'Hands Up', emoji: '🙌', description: 'Both hands above head', check: checkHandsUp },
-            { name: 'One Leg Stand', emoji: '🦩', description: 'Stand on one leg', check: checkOneLeg },
-            { name: 'Hands on Hips', emoji: '🤷', description: 'Both hands on hips', check: checkHandsOnHips },
+            { name: 'Right Hand Up', emoji: '👋', description: 'Raise your right hand high', check: checkRightHandUp },
+            { name: 'Left Hand Up', emoji: '✋', description: 'Raise your left hand high', check: checkLeftHandUp },
             { name: 'Touch Toes', emoji: '🙇', description: 'Bend down and touch your toes', check: checkTouchToes },
             { name: 'Star Jump', emoji: '⭐', description: 'Arms and legs spread wide', check: checkStarJump }
         ];
 
-        // Initialize
-        async function init() {
-            try {
-                loadingText.textContent = 'Requesting camera access...';
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: 640, height: 480, facingMode: 'user' }
-                });
-                
-                video.srcObject = stream;
-                video.onloadedmetadata = async () => {
-                    video.play();
-                    await loadPoseDetection();
-                };
-            } catch (err) {
-                console.error('Camera error:', err);
-                loadingScreen.innerHTML = `
-                    <div class="text-white text-center">
-                        <div class="text-6xl mb-4">❌</div>
-                        <p class="text-xl">Camera access denied!</p>
-                        <p class="text-sm mt-2">Please allow camera access and refresh the page</p>
-                    </div>
-                `;
-            }
+        // Helper function to calculate angle between three points
+        function calculateAngle(p1, p2, p3) {
+            const radians = Math.atan2(p3.y - p2.y, p3.x - p2.x) - Math.atan2(p1.y - p2.y, p1.x - p2.x);
+            let angle = Math.abs(radians * 180 / Math.PI);
+            if (angle > 180) angle = 360 - angle;
+            return angle;
         }
 
-        async function loadPoseDetection() {
-            try {
-                loadingText.textContent = 'Initializing TensorFlow...';
-                
-                // Wait for TensorFlow to be ready
-                await tf.ready();
-                
-                loadingText.textContent = 'Loading AI model (this may take 10-20 seconds)...';
-                
-                // Create detector using MoveNet
-                detector = await poseDetection.createDetector(
-                    poseDetection.SupportedModels.MoveNet,
-                    {
-                        modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING
-                    }
-                );
-                
-                loadingScreen.classList.add('hidden');
-                startBtn.classList.remove('hidden');
-                detectPose();
-            } catch (err) {
-                console.error('Model load error:', err);
-                loadingScreen.innerHTML = `
-                    <div class="text-white text-center">
-                        <div class="text-6xl mb-4">⚠️</div>
-                        <p class="text-xl">Error loading AI model</p>
-                        <p class="text-sm mt-2">Error: ${err.message}</p>
-                        <button onclick="location.reload()" class="mt-4 bg-white text-purple-600 px-6 py-2 rounded-lg font-bold">
-                            Try Again
-                        </button>
-                    </div>
-                `;
-            }
+        function getKeypoint(keypoints, name) {
+            const kp = keypoints.find(k => k.name === name);
+            return (kp && kp.score > 0.3) ? kp : null;
+        }
+
+        function checkTPose(keypoints) {
+            const leftShoulder = getKeypoint(keypoints, 'left_shoulder');
+            const rightShoulder = getKeypoint(keypoints, 'right_shoulder');
+            const leftElbow = getKeypoint(keypoints, 'left_elbow');
+            const rightElbow = getKeypoint(keypoints, 'right_elbow');
+            const leftWrist = getKeypoint(keypoints, 'left_wrist');
+            const rightWrist = getKeypoint(keypoints, 'right_wrist');
+            
+            if (!leftShoulder || !rightShoulder || !leftElbow || !rightElbow || !leftWrist || !rightWrist) return false;
+            
+            // Calculate shoulder width for normalization
+            const shoulderWidth = Math.abs(rightShoulder.x - leftShoulder.x);
+            
+            // Check if arms are extended horizontally (angle close to 180 degrees)
+            const leftArmAngle = calculateAngle(leftWrist, leftElbow, leftShoulder);
+            const rightArmAngle = calculateAngle(rightWrist, rightElbow, rightShoulder);
+            
+            // Check if elbows are roughly at shoulder height
+            const leftElbowHeight = Math.abs(leftElbow.y - leftShoulder.y) / shoulderWidth;
+            const rightElbowHeight = Math.abs(rightElbow.y - rightShoulder.y) / shoulderWidth;
+            
+            // Arms should be relatively straight and horizontal
+            const armsExtended = leftArmAngle > 140 && rightArmAngle > 140;
+            const armsHorizontal = leftElbowHeight < 0.5 && rightElbowHeight < 0.5;
+            
+            return armsExtended && armsHorizontal;
+        }
+
+        function checkStarJump(keypoints) {
+            const leftWrist = getKeypoint(keypoints, 'left_wrist');
+            const rightWrist = getKeypoint(keypoints, 'right_wrist');
+            const leftAnkle = getKeypoint(keypoints, 'left_ankle');
+            const rightAnkle = getKeypoint(keypoints, 'right_ankle');
+            const leftShoulder = getKeypoint(keypoints, 'left_shoulder');
+            const rightShoulder = getKeypoint(keypoints, 'right_shoulder');
+            const leftHip = getKeypoint(keypoints, 'left_hip');
+            const rightHip = getKeypoint(keypoints, 'right_hip');
+            
+            if (!leftWrist || !rightWrist || !leftAnkle || !rightAnkle || !leftShoulder || !rightShoulder || !leftHip || !rightHip) return false;
+            
+            const shoulderWidth = Math.abs(rightShoulder.x - leftShoulder.x);
+            const hipWidth = Math.abs(rightHip.x - leftHip.x);
+            
+            // Check arms are wide and up
+            const armSpan = Math.abs(rightWrist.x - leftWrist.x);
+            const armsWide = armSpan / shoulderWidth > 2.5; // Arms wider than 2.5x shoulder width
+            const armsUp = leftWrist.y < leftShoulder.y && rightWrist.y < rightShoulder.y;
+            
+            // Check legs are spread
+            const legSpan = Math.abs(rightAnkle.x - leftAnkle.x);
+            const legsWide = legSpan / hipWidth > 1.8; // Legs wider than 1.8x hip width
+            
+            return armsWide && armsUp && legsWide;
+        }
+
+        function checkHandsUp(keypoints) {
+            const leftWrist = getKeypoint(keypoints, 'left_wrist');
+            const rightWrist = getKeypoint(keypoints, 'right_wrist');
+            const nose = getKeypoint(keypoints, 'nose');
+            
+            if (!leftWrist || !rightWrist || !nose) return false;
+            
+            return leftWrist.y < nose.y && rightWrist.y < nose.y;
+        }
+
+        function checkRightHandUp(keypoints) {
+            const rightWrist = getKeypoint(keypoints, 'right_wrist');
+            const rightShoulder = getKeypoint(keypoints, 'right_shoulder');
+            const nose = getKeypoint(keypoints, 'nose');
+            
+            if (!rightWrist || !rightShoulder || !nose) return false;
+            
+            return rightWrist.y < nose.y && rightWrist.y < rightShoulder.y - 50;
+        }
+
+        function checkLeftHandUp(keypoints) {
+            const leftWrist = getKeypoint(keypoints, 'left_wrist');
+            const leftShoulder = getKeypoint(keypoints, 'left_shoulder');
+            const nose = getKeypoint(keypoints, 'nose');
+            
+            if (!leftWrist || !leftShoulder || !nose) return false;
+            
+            return leftWrist.y < nose.y && leftWrist.y < leftShoulder.y - 50;
+        }
+
+        function checkTouchToes(keypoints) {
+            const leftWrist = getKeypoint(keypoints, 'left_wrist');
+            const rightWrist = getKeypoint(keypoints, 'right_wrist');
+            const leftAnkle = getKeypoint(keypoints, 'left_ankle');
+            const rightAnkle = getKeypoint(keypoints, 'right_ankle');
+            const leftHip = getKeypoint(keypoints, 'left_hip');
+            
+            if (!leftWrist || !rightWrist || !leftAnkle || !rightAnkle || !leftHip) return false;
+            
+            const avgWristY = (leftWrist.y + rightWrist.y) / 2;
+            const avgAnkleY = (leftAnkle.y + rightAnkle.y) / 2;
+            
+            return avgWristY > leftHip.y && Math.abs(avgWristY - avgAnkleY) < 150;
+        }
+
+        async function setupCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480 }
+            });
+            video.srcObject = stream;
+            
+            return new Promise((resolve) => {
+                video.onloadedmetadata = () => {
+                    video.play();
+                    resolve(video);
+                };
+            });
+        }
+
+        async function loadModel() {
+            const model = poseDetection.SupportedModels.MoveNet;
+            detector = await poseDetection.createDetector(model, {
+                modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING
+            });
         }
 
         async function detectPose() {
+            if (!video.videoWidth) {
+                requestAnimationFrame(detectPose);
+                return;
+            }
+
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
+
+            const detectedPoses = await detector.estimatePoses(video);
             
-            async function detect() {
-                if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.save();
-                    ctx.scale(-1, 1);
-                    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-                    ctx.restore();
-                    
-                    try {
-                        const poses = await detector.estimatePoses(video);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.translate(-canvas.width, 0);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            if (detectedPoses.length > 0) {
+                const pose = detectedPoses[0];
+                drawSkeleton(pose.keypoints);
+                
+                if (gameActive && currentPoseIndex < poses.length) {
+                    const currentPose = poses[currentPoseIndex];
+                    if (currentPose.check(pose.keypoints)) {
+                        score++;
+                        document.getElementById('score').textContent = score;
+                        currentPoseIndex++;
                         
-                        if (poses && poses.length > 0) {
-                            const keypoints = poses[0].keypoints;
-                            drawSkeleton(keypoints);
-                            
-                            if (gameActive && currentPose) {
-                                const poseMatch = currentPose.check(keypoints);
-                                if (poseMatch) {
-                                    score++;
-                                    document.getElementById('score').textContent = score;
-                                    
-                                    // Visual feedback
-                                    canvas.style.border = '10px solid #00ff00';
-                                    setTimeout(() => canvas.style.border = 'none', 300);
-                                    
-                                    showMessage('🎉 PERFECT! +1 Point! 🎉');
-                                    selectRandomPose();
-                                }
-                            }
+                        if (currentPoseIndex < poses.length) {
+                            updateCurrentPose();
+                        } else {
+                            endGame();
                         }
-                    } catch (err) {
-                        console.error('Detection error:', err);
                     }
                 }
-                animationId = requestAnimationFrame(detect);
             }
-            
-            detect();
+
+            requestAnimationFrame(detectPose);
         }
 
         function drawSkeleton(keypoints) {
-            // MoveNet connections
             const connections = [
                 ['left_shoulder', 'right_shoulder'],
                 ['left_shoulder', 'left_elbow'],
@@ -301,11 +333,10 @@
                 ['right_hip', 'right_knee'],
                 ['right_knee', 'right_ankle']
             ];
-            
-            // Draw connections
+
             ctx.strokeStyle = '#00ff00';
-            ctx.lineWidth = 3;
-            
+            ctx.lineWidth = 4;
+
             connections.forEach(([start, end]) => {
                 const startPoint = keypoints.find(kp => kp.name === start);
                 const endPoint = keypoints.find(kp => kp.name === end);
@@ -317,158 +348,42 @@
                     ctx.stroke();
                 }
             });
-            
-            // Draw keypoints
-            ctx.fillStyle = '#00ff00';
+
+            ctx.fillStyle = '#ff0000';
             keypoints.forEach(kp => {
                 if (kp.score > 0.3) {
                     ctx.beginPath();
-                    ctx.arc((1 - kp.x / canvas.width) * canvas.width, kp.y, 5, 0, 2 * Math.PI);
+                    ctx.arc((1 - kp.x / canvas.width) * canvas.width, kp.y, 6, 0, 2 * Math.PI);
                     ctx.fill();
                 }
             });
         }
 
-        function getKeypoint(keypoints, name) {
-            return keypoints.find(kp => kp.name === name);
+        function updateCurrentPose() {
+            const pose = poses[currentPoseIndex];
+            document.getElementById('currentPose').innerHTML = `
+                <div class="text-6xl mb-2">${pose.emoji}</div>
+                <div class="text-2xl font-bold">${pose.name}</div>
+                <div class="text-gray-600 mt-2">${pose.description}</div>
+            `;
         }
 
-        function checkTPose(keypoints) {
-            const leftShoulder = getKeypoint(keypoints, 'left_shoulder');
-            const rightShoulder = getKeypoint(keypoints, 'right_shoulder');
-            const leftElbow = getKeypoint(keypoints, 'left_elbow');
-            const rightElbow = getKeypoint(keypoints, 'right_elbow');
-            const leftWrist = getKeypoint(keypoints, 'left_wrist');
-            const rightWrist = getKeypoint(keypoints, 'right_wrist');
-            
-            if (!leftShoulder || !rightShoulder || !leftElbow || !rightElbow || !leftWrist || !rightWrist) return false;
-            
-            const leftArmStraight = Math.abs(leftElbow.y - leftShoulder.y) < 80;
-            const rightArmStraight = Math.abs(rightElbow.y - rightShoulder.y) < 80;
-            const leftArmOut = leftWrist.x < leftShoulder.x - 50;
-            const rightArmOut = rightWrist.x > rightShoulder.x + 50;
-            
-            return leftArmStraight && rightArmStraight && leftArmOut && rightArmOut;
-        }
-
-        function checkHandsUp(keypoints) {
-            const nose = getKeypoint(keypoints, 'nose');
-            const leftWrist = getKeypoint(keypoints, 'left_wrist');
-            const rightWrist = getKeypoint(keypoints, 'right_wrist');
-            
-            if (!nose || !leftWrist || !rightWrist) return false;
-            
-            return leftWrist.y < nose.y && rightWrist.y < nose.y;
-        }
-
-        function checkOneLeg(keypoints) {
-            const leftAnkle = getKeypoint(keypoints, 'left_ankle');
-            const rightAnkle = getKeypoint(keypoints, 'right_ankle');
-            const leftKnee = getKeypoint(keypoints, 'left_knee');
-            const rightKnee = getKeypoint(keypoints, 'right_knee');
-            
-            if (!leftAnkle || !rightAnkle || !leftKnee || !rightKnee) return false;
-            
-            const leftLegBent = Math.abs(leftAnkle.y - leftKnee.y) < 80;
-            const rightLegBent = Math.abs(rightAnkle.y - rightKnee.y) < 80;
-            
-            return (leftLegBent && !rightLegBent) || (rightLegBent && !leftLegBent);
-        }
-
-        function checkHandsOnHips(keypoints) {
-            const leftWrist = getKeypoint(keypoints, 'left_wrist');
-            const rightWrist = getKeypoint(keypoints, 'right_wrist');
-            const leftHip = getKeypoint(keypoints, 'left_hip');
-            const rightHip = getKeypoint(keypoints, 'right_hip');
-            
-            if (!leftWrist || !rightWrist || !leftHip || !rightHip) return false;
-            
-            const leftHandOnHip = Math.abs(leftWrist.x - leftHip.x) < 80 && Math.abs(leftWrist.y - leftHip.y) < 80;
-            const rightHandOnHip = Math.abs(rightWrist.x - rightHip.x) < 80 && Math.abs(rightWrist.y - rightHip.y) < 80;
-            
-            return leftHandOnHip && rightHandOnHip;
-        }
-
-        function checkTouchToes(keypoints) {
-            const nose = getKeypoint(keypoints, 'nose');
-            const leftWrist = getKeypoint(keypoints, 'left_wrist');
-            const rightWrist = getKeypoint(keypoints, 'right_wrist');
-            const leftAnkle = getKeypoint(keypoints, 'left_ankle');
-            const rightAnkle = getKeypoint(keypoints, 'right_ankle');
-            
-            if (!nose || !leftWrist || !rightWrist || !leftAnkle || !rightAnkle) return false;
-            
-            const avgAnkleY = (leftAnkle.y + rightAnkle.y) / 2;
-            const avgWristY = (leftWrist.y + rightWrist.y) / 2;
-            const bentOver = nose.y > avgAnkleY - 150;
-            const handsLow = avgWristY > avgAnkleY - 100;
-            
-            return bentOver && handsLow;
-        }
-
-        function checkStarJump(keypoints) {
-            const leftWrist = getKeypoint(keypoints, 'left_wrist');
-            const rightWrist = getKeypoint(keypoints, 'right_wrist');
-            const leftAnkle = getKeypoint(keypoints, 'left_ankle');
-            const rightAnkle = getKeypoint(keypoints, 'right_ankle');
-            const leftShoulder = getKeypoint(keypoints, 'left_shoulder');
-            const rightShoulder = getKeypoint(keypoints, 'right_shoulder');
-            
-            if (!leftWrist || !rightWrist || !leftAnkle || !rightAnkle || !leftShoulder || !rightShoulder) return false;
-            
-            const armsWide = (rightWrist.x - leftWrist.x) > 180;
-            const legsWide = (rightAnkle.x - leftAnkle.x) > 100;
-            const armsUp = leftWrist.y < leftShoulder.y && rightWrist.y < rightShoulder.y;
-            
-            return armsWide && legsWide && armsUp;
-        }
-
-        function selectRandomPose() {
-            const randomPose = poses[Math.floor(Math.random() * poses.length)];
-            currentPose = randomPose;
-            document.getElementById('poseEmoji').textContent = randomPose.emoji;
-            document.getElementById('poseName').textContent = randomPose.name;
-            document.getElementById('poseDescription').textContent = randomPose.description;
-            poseDisplay.classList.remove('hidden');
-        }
-
-        function showMessage(msg) {
-            document.getElementById('message').textContent = msg;
-            messageBox.classList.remove('hidden');
-            messageBox.style.animation = 'none';
-            setTimeout(() => {
-                messageBox.style.animation = 'pulse 0.5s ease-in-out';
-            }, 10);
-            setTimeout(() => messageBox.classList.add('hidden'), 2000);
-        }
-
-        async function startGame() {
+        function startGame() {
             startBtn.classList.add('hidden');
             
-            // Countdown
-            for (let i = 3; i > 0; i--) {
-                document.getElementById('message').textContent = `Get Ready! ${i}...`;
-                messageBox.classList.remove('hidden');
-                messageBox.className = 'bg-yellow-100 border-2 border-yellow-500 rounded-2xl p-4 mb-6 text-center';
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-            
-            document.getElementById('message').textContent = 'GO! 🎮';
-            messageBox.className = 'bg-green-100 border-2 border-green-500 rounded-2xl p-4 mb-6 text-center';
-            await new Promise(resolve => setTimeout(resolve, 500));
-            messageBox.classList.add('hidden');
-            
             score = 0;
-            timeLeft = 60;
+            timeLeft = 30;
             gameActive = true;
-            document.getElementById('score').textContent = score;
-            document.getElementById('timeLeft').textContent = timeLeft + 's';
-            resetBtn.classList.remove('hidden');
-            selectRandomPose();
+            currentPoseIndex = 0;
             
-            timer = setInterval(() => {
+            document.getElementById('score').textContent = score;
+            document.getElementById('timer').textContent = timeLeft;
+            
+            updateCurrentPose();
+            
+            timerInterval = setInterval(() => {
                 timeLeft--;
-                document.getElementById('timeLeft').textContent = timeLeft + 's';
+                document.getElementById('timer').textContent = timeLeft;
                 
                 if (timeLeft <= 0) {
                     endGame();
@@ -477,37 +392,52 @@
         }
 
         function endGame() {
-            clearInterval(timer);
             gameActive = false;
-            poseDisplay.classList.add('hidden');
-            resetBtn.classList.add('hidden');
-            startBtn.classList.remove('hidden');
+            clearInterval(timerInterval);
             
-            if (score > bestScore) {
-                bestScore = score;
-                document.getElementById('bestScore').textContent = bestScore;
-            }
+            document.getElementById('currentPose').innerHTML = `
+                <div class="text-6xl mb-2">🎉</div>
+                <div class="text-2xl font-bold">Game Over!</div>
+                <div class="text-gray-600 mt-2">Final Score: ${score}</div>
+            `;
             
-            showMessage('Time\'s up! Great job! 🎉 Score: ' + score);
+            resetBtn.classList.remove('hidden');
         }
 
         function resetGame() {
-            clearInterval(timer);
-            gameActive = false;
-            score = 0;
-            timeLeft = 60;
-            currentPose = null;
-            document.getElementById('score').textContent = score;
-            document.getElementById('timeLeft').textContent = timeLeft + 's';
-            poseDisplay.classList.add('hidden');
             resetBtn.classList.add('hidden');
             startBtn.classList.remove('hidden');
+            
+            document.getElementById('currentPose').innerHTML = `
+                <div class="text-6xl mb-2">🎮</div>
+                <div class="text-2xl font-bold">Ready?</div>
+                <div class="text-gray-600 mt-2">Click Start to begin!</div>
+            `;
         }
 
         startBtn.addEventListener('click', startGame);
         resetBtn.addEventListener('click', resetGame);
 
         // Start initialization
+        async function init() {
+            try {
+                await setupCamera();
+                await loadModel();
+                loadingScreen.classList.add('hidden');
+                gameContainer.classList.remove('hidden');
+                detectPose();
+            } catch (error) {
+                console.error('Error:', error);
+                loadingScreen.innerHTML = `
+                    <div class="text-red-600">
+                        <div class="text-6xl mb-4">❌</div>
+                        <h2 class="text-3xl font-bold mb-4">Error Loading Camera</h2>
+                        <p class="text-lg">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
         init();
     </script>
 </body>
